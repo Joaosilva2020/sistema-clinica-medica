@@ -1,6 +1,7 @@
-// script.js
+// script.js - Versão
 
 document.addEventListener("DOMContentLoaded", () => {
+    // Referências aos elementos da página (alguns não serão usados, mas mantidos)
     const loginForm = document.getElementById("loginForm");
     const loginScreen = document.getElementById("loginScreen");
     const attendantDashboard = document.getElementById("attendantDashboard");
@@ -18,10 +19,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const sendBtn = document.getElementById("sendBtn");
     const messageText = document.getElementById("messageText");
 
-    // Usuários demo
+    // Usuários demo (mantido apenas como referência)
     const users = {
         "manager@clinica.com": { role: "gerente", name: "Dr. Maria Silva" },
-        "atendente@clinica.com": { role: "atendente", name: "Ana Santos" }
+        "atendente@clinica.com": { role: "atendente", name: "Ana Santos" },
+        "teste@clinica.com": { role: "atendente", name: "Usuário Teste" }
     };
 
     // Conversas fictícias
@@ -31,30 +33,38 @@ document.addEventListener("DOMContentLoaded", () => {
         { id: 3, name: "João Costa", status: "Consulta marcada", messages: ["Minha consulta é hoje às 15h, certo?"] }
     ];
 
-    // LOGIN
-    loginForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const email = document.getElementById("email").value;
-        const password = document.getElementById("password").value;
+    // Variável para rastrear a conversa ativa
+    let activeConversation = null;
 
-        if (users[email]) {
-            const user = users[email];
-            loginScreen.classList.add("hidden");
+    // Ações de LOGIN e Inicialização: IGNORAR LOGIN e CARREGAR DASHBOARD DO ATENDENTE
+    // O bloco de loginForm.addEventListener("submit", ...) foi removido
+    // e substituído por uma inicialização direta.
 
-            if (user.role === "gerente") {
-                managerDashboard.classList.remove("hidden");
-                document.getElementById("managerName").innerText = user.name;
-            } else {
-                attendantDashboard.classList.remove("hidden");
-                document.getElementById("userName").innerText = user.name;
-                loadConversations();
-            }
-        } else {
-            alert("Usuário não encontrado!");
+    // --- FUNÇÃO DE INICIALIZAÇÃO AUTOMÁTICA ---
+    function initializeAttendantDashboard() {
+        // 1. Oculta a tela de login
+        loginScreen.classList.add("hidden");
+
+        // 2. Exibe o dashboard do atendente
+        attendantDashboard.classList.remove("hidden");
+
+        // 3. Define um nome de usuário padrão para visualização
+        document.getElementById("userName").innerText = users["teste@clinica.com"].name;
+
+        // 4. Carrega a lista de conversas
+        loadConversations();
+
+        // 5. Abre a primeira conversa automaticamente para interatividade imediata
+        if (conversations.length > 0) {
+            openConversation(conversations[0]);
         }
-    });
+    }
 
-    // LOGOUT
+    // Chamada imediata para iniciar o dashboard
+    initializeAttendantDashboard();
+    // ------------------------------------------
+
+    // LOGOUT (mantido, mas agora levará de volta ao loginScreen, que estará vazio)
     logoutBtn?.addEventListener("click", () => {
         attendantDashboard.classList.add("hidden");
         loginScreen.classList.remove("hidden");
@@ -71,17 +81,28 @@ document.addEventListener("DOMContentLoaded", () => {
         conversations.forEach(conv => {
             const div = document.createElement("div");
             div.classList.add("conversation-item");
+
+            // Marca a conversa ativa
+            if (activeConversation && activeConversation.id === conv.id) {
+                div.classList.add("active");
+            }
             div.innerHTML = `
                 <strong>${conv.name}</strong>
                 <p>${conv.status}</p>
             `;
-            div.addEventListener("click", () => openConversation(conv));
+            div.addEventListener("click", () => {
+                // Alterna a classe 'active'
+                document.querySelectorAll(".conversation-item").forEach(item => item.classList.remove("active"));
+                div.classList.add("active");
+                openConversation(conv)
+            });
             conversationList.appendChild(div);
         });
     }
 
     // ABRIR CONVERSA
     function openConversation(conv) {
+        activeConversation = conv;
         chatHeader.classList.remove("hidden");
         chatInput.classList.remove("hidden");
         patientName.innerText = conv.name;
@@ -89,6 +110,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         chatMessages.innerHTML = "";
         conv.messages.forEach(msg => addMessage("paciente", msg));
+        chatMessages.scrollTop = chatMessages.scrollHeight; // Rola para o final
+        loadConversations(); // Recarrega para atualizar o estado 'active'
     }
 
     // ENVIAR MENSAGEM
@@ -96,7 +119,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const text = messageText.value.trim();
         if (text !== "") {
             addMessage("atendente", text);
+            // Salva a mensagem na conversa ativa para persistir visualmente
+            if (activeConversation) {
+                activeConversation.messages.push(text);
+            }
             messageText.value = "";
+        }
+    });
+
+    // Permite enviar mensagem pressionando Enter
+    messageText?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            sendBtn.click();
         }
     });
 
@@ -108,7 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // TABS DO GERENTE
+    // TABS DO GERENTE (mantido para funcionalidade de tabs, mesmo que o painel não seja o padrão)
     const tabButtons = document.querySelectorAll(".tab-btn");
     const tabPanels = document.querySelectorAll(".tab-panel");
 
